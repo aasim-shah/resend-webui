@@ -239,9 +239,18 @@ export function getEmailRecords(filter?: string | { accountId?: string; status?:
   const { accountId, status, query, userId } = filter;
 
   if (userId) {
-    list = list.filter(
-      (e) => !e.userId || e.userId === userId || e.userId === 'user_demo' || userId === 'user_demo' || userId === 'user_aasim' || userId === 'user_asim_gmail'
-    );
+    const currentUser = (db.users || []).find((u) => u.id === userId);
+    const isAdmin =
+      userId === 'user_demo' ||
+      userId === 'user_aasim' ||
+      currentUser?.email.toLowerCase() === 'contact@aasimshah.com' ||
+      currentUser?.email.toLowerCase() === 'admin@resend-webui.com';
+
+    if (isAdmin) {
+      list = list.filter((e) => !e.userId || e.userId === userId || e.userId === 'user_demo' || e.userId === 'user_aasim');
+    } else {
+      list = list.filter((e) => e.userId === userId);
+    }
   }
 
   if (accountId && accountId !== 'all') {
