@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { EmailRecord, ResendAccount, DomainRecord, User } from '../types';
 
 interface DBData {
@@ -10,7 +11,7 @@ interface DBData {
   webhooks: any[];
 }
 
-const DB_PATH = path.join(process.cwd(), 'data', 'db.json');
+const PRIMARY_DB_PATH = path.join(process.cwd(), 'data', 'db.json');
 
 const INITIAL_USERS: User[] = [
   {
@@ -133,52 +134,79 @@ const INITIAL_EMAILS: EmailRecord[] = [
   },
 ];
 
+function getDBPath(): string {
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+    return path.join(os.tmpdir(), 'db.json');
+  }
+  return PRIMARY_DB_PATH;
+}
+
 function ensureDirExists(filePath: string) {
   const dirname = path.dirname(filePath);
   if (!fs.existsSync(dirname)) {
-    fs.mkdirSync(dirname, { recursive: true });
+    try {
+      fs.mkdirSync(dirname, { recursive: true });
+    } catch (e) {
+      // Ignore directory creation errors if read-only
+    }
   }
 }
 
 export function readDB(): DBData {
-  ensureDirExists(DB_PATH);
-  if (!fs.existsSync(DB_PATH)) {
-    const initialData: DBData = {
-      users: INITIAL_USERS,
-      emails: INITIAL_EMAILS,
-      customAccounts: [],
-      domains: [],
-      webhooks: [],
-    };
-    fs.writeFileSync(DB_PATH, JSON.stringify(initialData, null, 2), 'utf-8');
-    return initialData;
+  const tmpPath = path.join(os.tmpdir(), 'db.json');
+
+  // Try reading from /tmp/db.json first (Serverless Vercel writable copy)
+  if (fs.existsSync(tmpPath)) {
+    try {
+      const content = fs.readFileSync(tmpPath, 'utf-8');
+      const data = JSON.parse(content);
+      if (!data.users) data.users = INITIAL_USERS;
+      if (!data.emails || data.emails.length === 0) data.emails = INITIAL_EMAILS;
+      return data;
+    } catch (e) {
+      console.error('Error reading /tmp/db.json:', e);
+    }
   }
 
-  try {
-    const content = fs.readFileSync(DB_PATH, 'utf-8');
-    const data = JSON.parse(content);
-    if (!data.users) data.users = INITIAL_USERS;
-    if (!data.emails || data.emails.length === 0) data.emails = INITIAL_EMAILS;
-    return data;
-  } catch (e) {
-    console.error('Error reading db.json, reinitializing:', e);
-    const initialData: DBData = {
-      users: INITIAL_USERS,
-      emails: INITIAL_EMAILS,
-      customAccounts: [],
-      domains: [],
-      webhooks: [],
-    };
-    fs.writeFileSync(DB_PATH, JSON.stringify(initialData, null, 2), 'utf-8');
-    return initialData;
+  // Fallback to reading primary path
+  if (fs.existsSync(PRIMARY_DB_PATH)) {
+    try {
+      const content = fs.readFileSync(PRIMARY_DB_PATH, 'utf-8');
+      const data = JSON.parse(content);
+      if (!data.users) data.users = INITIAL_USERS;
+      if (!data.emails || data.emails.length === 0) data.emails = INITIAL_EMAILS;
+      return data;
+    } catch (e) {
+      console.error('Error reading primary DB_PATH:', e);
+    }
   }
+
+  // Initial seed data if no file exists yet
+  return {
+    users: INITIAL_USERS,
+    emails: INITIAL_EMAILS,
+    customAccounts: [],
+    domains: [],
+    webhooks: [],
+  };
 }
 
 export const readDb = readDB;
 
 export function writeDB(data: DBData): void {
-  ensureDirExists(DB_PATH);
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+  const targetPath = getDBPath();
+  try {
+    ensureDirExists(targetPath);
+    fs.writeFileSync(targetPath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err: any) {
+    // If read-only filesystem (EROFS), fallback writing to /tmp/db.json
+    try {
+      const tmpPath = path.join(os.tmpdir(), 'db.json');
+      fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (tmpErr) {
+      console.error('Failed to write DB to fallback /tmp:', tmpErr);
+    }
+  }
 }
 
 export function getEmailRecords(filter?: string | { accountId?: string; status?: string; query?: string; userId?: string }): EmailRecord[] {
