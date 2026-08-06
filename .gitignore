@@ -23,11 +23,6 @@ dist/
 data/db.json
 *.log
 
-# Archived Legacy Scratch Files
-_legacy_archive/
-CLAUDE.md
-AGENTS.md
-
 # IDE & OS
 .DS_Store
 *.pem

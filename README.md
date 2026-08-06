@@ -11,6 +11,20 @@
 
 ---
 
+## 🤖 AI Agent Quick Start (Cursor AI / VS Code Copilot)
+
+> **For AI Agents (Cursor AI, Antigravity, Windsurf, Copilot Workspace):**
+
+To autonomously clone, configure environment variables, install dependencies, and launch `resend-webui`, run this 1-line command:
+
+```bash
+git clone https://github.com/aasim-shah/resend-webui.git && cd resend-webui && npm install && cp .env.example .env && npm run dev
+```
+
+Detailed AI operational rules are available in [`docs/AGENTS.md`](./docs/AGENTS.md).
+
+---
+
 ## ✨ Features
 
 - **🌐 Multi-Account Profile Hub**: Seamlessly switch between multiple Resend accounts (e.g., Personal, Studio, SaaS) or view an aggregated feed across all profiles.
@@ -27,13 +41,14 @@
 
 Detailed documentation for `resend-webui` is available in the [`docs/`](./docs) directory:
 
+- 🤖 [**AI Agent Guide**](./docs/AGENTS.md): Autonomous setup instructions for AI coding assistants.
 - 🏗️ [**Architecture Overview**](./docs/ARCHITECTURE.md): System components, data flow, and state management.
 - 🌐 [**Deployment Guide**](./docs/DEPLOYMENT.md): 1-Click Vercel, Docker, and Railway hosting guides.
 - 🔒 [**Security & Privacy Policy**](./docs/SECURITY.md): Key isolation, cookie sessions, and zero-telemetry policy.
 
 ---
 
-## 🚀 Quick Start (Local Setup)
+## 🚀 Human Quick Start (Local Setup)
 
 ### 1. Clone the Repository
 ```bash
@@ -101,7 +116,8 @@ Deploy your own instance of `resend-webui` to Vercel in 1 click:
 
 ```
 resend-webui/
-├── docs/                    # Architectural, Security & Deployment Guides
+├── docs/                    # Architectural, Security, AI & Deployment Guides
+│   ├── AGENTS.md
 │   ├── ARCHITECTURE.md
 │   ├── DEPLOYMENT.md
 │   └── SECURITY.md
