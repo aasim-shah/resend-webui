@@ -23,13 +23,13 @@
 
 ---
 
-## 🔒 Security & API Key Privacy Notice
+## 📚 Documentation
 
-> [!IMPORTANT]
-> **Your API keys remain 100% under your control.**
-> - **Self-Hosted Privacy**: When deployed to your own Vercel or Railway instance, `resend-webui` communicates directly with official Resend API endpoints (`api.resend.com`).
-> - **No Remote Telemetry**: No third-party servers, analytics trackers, or external databases inspect or log your API keys or email contents.
-> - **Environment Isolation**: Production API keys can be provided via `.env` files or isolated environment variables.
+Detailed documentation for `resend-webui` is available in the [`docs/`](./docs) directory:
+
+- 🏗️ [**Architecture Overview**](./docs/ARCHITECTURE.md): System components, data flow, and state management.
+- 🌐 [**Deployment Guide**](./docs/DEPLOYMENT.md): 1-Click Vercel, Docker, and Railway hosting guides.
+- 🔒 [**Security & Privacy Policy**](./docs/SECURITY.md): Key isolation, cookie sessions, and zero-telemetry policy.
 
 ---
 
@@ -101,6 +101,10 @@ Deploy your own instance of `resend-webui` to Vercel in 1 click:
 
 ```
 resend-webui/
+├── docs/                    # Architectural, Security & Deployment Guides
+│   ├── ARCHITECTURE.md
+│   ├── DEPLOYMENT.md
+│   └── SECURITY.md
 ├── data/                    # Local JSON store (db.json)
 ├── src/
 │   ├── app/
