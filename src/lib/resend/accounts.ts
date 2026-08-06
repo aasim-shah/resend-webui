@@ -11,60 +11,72 @@ function parseEnvFile(filename: string): Record<string, string> {
   return dotenv.parse(content);
 }
 
-export function getAllAccounts(): ResendAccount[] {
+export function getAllAccounts(userId?: string): ResendAccount[] {
   const accounts: ResendAccount[] = [];
 
-  // 1. Aasim Shah (default .env)
-  const defaultEnv = parseEnvFile('.env');
-  const apiKey1 = process.env.RESEND_API_KEY || defaultEnv.RESEND_API_KEY;
-  if (apiKey1) {
-    accounts.push({
-      id: 'aasim-shah',
-      name: 'Aasim Shah',
-      apiKey: apiKey1,
-      fromEmail: defaultEnv.FROM_EMAIL || 'contact@aasimshah.com',
-      fromName: defaultEnv.FROM_NAME || 'Aasim Shah',
-      isDefault: true,
-      source: 'env',
-    });
+  // Only include default .env profiles for demo/admin user or unauthenticated state
+  if (!userId || userId === 'user_demo') {
+    // 1. Aasim Shah (default .env)
+    const defaultEnv = parseEnvFile('.env');
+    const apiKey1 = process.env.RESEND_API_KEY || defaultEnv.RESEND_API_KEY;
+    if (apiKey1) {
+      accounts.push({
+        id: 'aasim-shah',
+        userId: 'user_demo',
+        name: 'Aasim Shah',
+        apiKey: apiKey1,
+        fromEmail: defaultEnv.FROM_EMAIL || 'contact@aasimshah.com',
+        fromName: defaultEnv.FROM_NAME || 'Aasim Shah',
+        isDefault: true,
+        source: 'env',
+      });
+    }
+
+    // 2. CoreByte Studio (.env.corebyte)
+    const corebyteEnv = parseEnvFile('.env.corebyte');
+    const apiKey2 = corebyteEnv.RESEND_API_KEY;
+    if (apiKey2) {
+      accounts.push({
+        id: 'corebyte-studio',
+        userId: 'user_demo',
+        name: 'CoreByte Studio',
+        apiKey: apiKey2,
+        fromEmail: corebyteEnv.FROM_EMAIL || 'info@corebytestudio.com',
+        fromName: corebyteEnv.FROM_NAME || 'CoreByte Studio',
+        isDefault: false,
+        source: 'env.corebyte',
+      });
+    }
+
+    // 3. FeedWink (.env.feedwink)
+    const feedwinkEnv = parseEnvFile('.env.feedwink');
+    const apiKey3 = feedwinkEnv.RESEND_API_KEY;
+    if (apiKey3) {
+      accounts.push({
+        id: 'feedwink',
+        userId: 'user_demo',
+        name: 'FeedWink',
+        apiKey: apiKey3,
+        fromEmail: feedwinkEnv.FROM_EMAIL || 'sales@feedwink.com',
+        fromName: feedwinkEnv.FROM_NAME || 'FeedWink',
+        isDefault: false,
+        source: 'env.feedwink',
+      });
+    }
   }
 
-  // 2. CoreByte Studio (.env.corebyte)
-  const corebyteEnv = parseEnvFile('.env.corebyte');
-  const apiKey2 = corebyteEnv.RESEND_API_KEY;
-  if (apiKey2) {
-    accounts.push({
-      id: 'corebyte-studio',
-      name: 'CoreByte Studio',
-      apiKey: apiKey2,
-      fromEmail: corebyteEnv.FROM_EMAIL || 'info@corebytestudio.com',
-      fromName: corebyteEnv.FROM_NAME || 'CoreByte Studio',
-      isDefault: false,
-      source: 'env.corebyte',
-    });
-  }
-
-  // 3. FeedWink (.env.feedwink)
-  const feedwinkEnv = parseEnvFile('.env.feedwink');
-  const apiKey3 = feedwinkEnv.RESEND_API_KEY;
-  if (apiKey3) {
-    accounts.push({
-      id: 'feedwink',
-      name: 'FeedWink',
-      apiKey: apiKey3,
-      fromEmail: feedwinkEnv.FROM_EMAIL || 'sales@feedwink.com',
-      fromName: feedwinkEnv.FROM_NAME || 'FeedWink',
-      isDefault: false,
-      source: 'env.feedwink',
-    });
-  }
-
-  // 4. Custom accounts stored in database
+  // 4. Custom accounts filtered strictly by userId
   const db = readDb();
   if (db.customAccounts && db.customAccounts.length > 0) {
     for (const customAcc of db.customAccounts) {
-      if (!accounts.some((a) => a.id === customAcc.id)) {
-        accounts.push(customAcc);
+      if (userId) {
+        if (customAcc.userId === userId && !accounts.some((a) => a.id === customAcc.id)) {
+          accounts.push(customAcc);
+        }
+      } else {
+        if (!accounts.some((a) => a.id === customAcc.id)) {
+          accounts.push(customAcc);
+        }
       }
     }
   }
@@ -72,7 +84,7 @@ export function getAllAccounts(): ResendAccount[] {
   return accounts;
 }
 
-export function getAccountById(id: string): ResendAccount | undefined {
-  const accounts = getAllAccounts();
+export function getAccountById(id: string, userId?: string): ResendAccount | undefined {
+  const accounts = getAllAccounts(userId);
   return accounts.find((a) => a.id === id);
 }

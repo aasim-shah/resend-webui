@@ -48,6 +48,7 @@ export interface EmailRecord {
 
 export interface SendEmailPayload {
   accountId: string;
+  userId?: string;
   to: string | string[];
   cc?: string[];
   bcc?: string[];

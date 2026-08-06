@@ -1,10 +1,26 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { getAllAccounts } from '@/lib/resend/accounts';
 import { saveCustomAccount, deleteCustomAccount } from '@/lib/db/store';
 import { ResendAccount } from '@/lib/types';
 
+async function getActiveUserId(): Promise<string | undefined> {
+  const cookieStore = await cookies();
+  const authCookie = cookieStore.get('resend_auth_user');
+  if (authCookie) {
+    try {
+      const user = JSON.parse(authCookie.value);
+      return user.id;
+    } catch (e) {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
 export async function GET() {
-  const accounts = getAllAccounts().map((acc) => ({
+  const userId = await getActiveUserId();
+  const accounts = getAllAccounts(userId).map((acc) => ({
     ...acc,
     apiKeyMasked: acc.apiKey ? `${acc.apiKey.substring(0, 6)}...${acc.apiKey.slice(-4)}` : 'Not set',
     apiKey: undefined, // Hide full key in list response for security
@@ -14,6 +30,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const userId = await getActiveUserId();
     const body = await request.json();
     const { name, apiKey, fromEmail, fromName } = body;
 
@@ -23,6 +40,7 @@ export async function POST(request: Request) {
 
     const newAccount: ResendAccount = {
       id: `acc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      userId: userId || 'user_demo',
       name,
       apiKey,
       fromEmail,
@@ -41,8 +59,8 @@ export async function POST(request: Request) {
         apiKey: undefined,
       },
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to add account' }, { status: 500 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Failed to save account' }, { status: 500 });
   }
 }
 
@@ -53,10 +71,9 @@ export async function DELETE(request: Request) {
     if (!id) {
       return NextResponse.json({ error: 'Account ID required' }, { status: 400 });
     }
-
     deleteCustomAccount(id);
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to delete account' }, { status: 500 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Failed to delete account' }, { status: 500 });
   }
 }

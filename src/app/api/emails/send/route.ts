@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { sendEmailViaAccount } from '@/lib/resend/client';
 import { SendEmailPayload } from '@/lib/types';
 
 export async function POST(request: Request) {
   try {
+    const cookieStore = await cookies();
+    const authCookie = cookieStore.get('resend_auth_user');
+    let userId: string | undefined = undefined;
+    if (authCookie) {
+      try {
+        userId = JSON.parse(authCookie.value).id;
+      } catch (e) {}
+    }
+
     const body: SendEmailPayload = await request.json();
     const { accountId, to, subject } = body;
 
@@ -17,7 +27,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email subject is required' }, { status: 400 });
     }
 
-    const emailRecord = await sendEmailViaAccount(body);
+    const emailRecord = await sendEmailViaAccount({ ...body, userId });
 
     return NextResponse.json({
       success: true,

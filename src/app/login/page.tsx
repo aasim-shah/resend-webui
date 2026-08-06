@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { ArrowRight, Lock, Mail, User, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Lock, Mail, User, ShieldCheck } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,19 +36,6 @@ export default function LoginPage() {
       router.push('/');
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      await login('admin@resend-webui.com', 'password123');
-      router.push('/');
-    } catch (err: any) {
-      setError(err.message || 'Demo login failed');
     } finally {
       setLoading(false);
     }
@@ -145,7 +132,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@resend-webui.com"
+                  placeholder="name@example.com"
                   className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 font-medium"
                 />
               </div>
@@ -178,19 +165,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Quick Demo Evaluation Button */}
-          <div className="mt-6 pt-6 border-t border-slate-100 text-center">
-            <button
-              onClick={handleDemoLogin}
-              disabled={loading}
-              className="w-full py-2.5 px-4 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-200 transition-colors flex items-center justify-center space-x-2 cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4 text-blue-600" />
-              <span>1-Click Demo Login (Admin)</span>
-            </button>
-          </div>
-
-          <div className="mt-6 flex items-center justify-center space-x-1.5 text-[11px] text-slate-400 font-medium">
+          <div className="mt-6 pt-6 border-t border-slate-100 flex items-center justify-center space-x-1.5 text-[11px] text-slate-400 font-medium">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
             <span>Isolated per-user API key storage & session encryption</span>
           </div>

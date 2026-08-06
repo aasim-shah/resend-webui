@@ -225,7 +225,7 @@ export function getEmailRecords(filter?: string | { accountId?: string; status?:
   const { accountId, status, query, userId } = filter;
 
   if (userId) {
-    list = list.filter((e) => !e.userId || e.userId === userId);
+    list = list.filter((e) => e.userId === userId);
   }
 
   if (accountId && accountId !== 'all') {
