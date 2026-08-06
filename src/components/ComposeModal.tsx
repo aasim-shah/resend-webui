@@ -11,7 +11,7 @@ interface ComposeModalProps {
 }
 
 export function ComposeModal({ isOpen, onClose, onSuccess }: ComposeModalProps) {
-  const { accounts, selectedAccountId } = useAccounts();
+  const { accounts, selectedAccountId, triggerRefresh } = useAccounts();
   const [accountId, setAccountId] = React.useState<string>('aasim-shah');
   const [to, setTo] = React.useState<string>('');
   const [cc, setCc] = React.useState<string>('');
@@ -84,6 +84,7 @@ export function ComposeModal({ isOpen, onClose, onSuccess }: ComposeModalProps) 
       setFeedback({ type: 'success', message: data.message || 'Email sent successfully!' });
       setTimeout(() => {
         onClose();
+        triggerRefresh();
         if (onSuccess) onSuccess();
       }, 1000);
     } catch (err: any) {

@@ -3,8 +3,8 @@ import { getAccountById, getAllAccounts } from './accounts';
 import { SendEmailPayload, EmailRecord, DomainRecord } from '../types';
 import { saveEmailRecord } from '../db/store';
 
-export function getResendClient(accountId: string): { client: Resend; account: ReturnType<typeof getAccountById> } {
-  const account = getAccountById(accountId);
+export function getResendClient(accountId: string, userId?: string): { client: Resend; account: ReturnType<typeof getAccountById> } {
+  const account = getAccountById(accountId, userId);
   if (!account) {
     throw new Error(`Account not found for ID: ${accountId}`);
   }
@@ -15,8 +15,8 @@ export function getResendClient(accountId: string): { client: Resend; account: R
 }
 
 export async function sendEmailViaAccount(payload: SendEmailPayload): Promise<EmailRecord> {
-  const { accountId, to, cc, bcc, replyTo, subject, html, text, isDryRun, tags } = payload;
-  const account = getAccountById(accountId);
+  const { accountId, userId, to, cc, bcc, replyTo, subject, html, text, isDryRun, tags } = payload;
+  const account = getAccountById(accountId, userId);
 
   if (!account) {
     throw new Error(`Invalid account ID: ${accountId}`);
@@ -29,6 +29,7 @@ export async function sendEmailViaAccount(payload: SendEmailPayload): Promise<Em
   if (isDryRun) {
     const dryRunRecord: EmailRecord = {
       id,
+      userId,
       resendId: `dryrun_${id}`,
       accountId: account.id,
       accountName: account.name,
@@ -43,6 +44,7 @@ export async function sendEmailViaAccount(payload: SendEmailPayload): Promise<Em
       status: 'sent',
       sentAt: now,
       isDryRun: true,
+      direction: 'outbound',
       tags,
     };
     saveEmailRecord(dryRunRecord);
@@ -50,7 +52,7 @@ export async function sendEmailViaAccount(payload: SendEmailPayload): Promise<Em
   }
 
   try {
-    const { client } = getResendClient(accountId);
+    const { client } = getResendClient(accountId, userId);
     const response = await client.emails.send({
       from: fromSender,
       to: Array.isArray(to) ? to : [to],
@@ -66,6 +68,7 @@ export async function sendEmailViaAccount(payload: SendEmailPayload): Promise<Em
     if (response.error) {
       const errorRecord: EmailRecord = {
         id,
+        userId,
         accountId: account.id,
         accountName: account.name,
         from: fromSender,
@@ -75,6 +78,7 @@ export async function sendEmailViaAccount(payload: SendEmailPayload): Promise<Em
         text,
         status: 'failed',
         sentAt: now,
+        direction: 'outbound',
         error: response.error.message || JSON.stringify(response.error),
       };
       saveEmailRecord(errorRecord);
@@ -83,6 +87,7 @@ export async function sendEmailViaAccount(payload: SendEmailPayload): Promise<Em
 
     const successRecord: EmailRecord = {
       id,
+      userId,
       resendId: response.data?.id,
       accountId: account.id,
       accountName: account.name,
@@ -96,6 +101,7 @@ export async function sendEmailViaAccount(payload: SendEmailPayload): Promise<Em
       text,
       status: 'sent',
       sentAt: now,
+      direction: 'outbound',
       tags,
     };
     saveEmailRecord(successRecord);
@@ -103,6 +109,7 @@ export async function sendEmailViaAccount(payload: SendEmailPayload): Promise<Em
   } catch (err: any) {
     const errorRecord: EmailRecord = {
       id,
+      userId,
       accountId: account.id,
       accountName: account.name,
       from: fromSender,
@@ -112,48 +119,38 @@ export async function sendEmailViaAccount(payload: SendEmailPayload): Promise<Em
       text,
       status: 'failed',
       sentAt: now,
-      error: err.message || String(err),
+      direction: 'outbound',
+      error: err.message || 'Unknown error occurred',
     };
     saveEmailRecord(errorRecord);
     throw err;
   }
 }
 
-export async function fetchDomainsForAccount(accountId: string): Promise<DomainRecord[]> {
+export async function fetchDomainsForAccount(accountId: string, userId?: string): Promise<DomainRecord[]> {
   try {
-    const { client, account } = getResendClient(accountId);
+    const { client, account } = getResendClient(accountId, userId);
+    if (!account) return [];
     const response = await client.domains.list();
-    if (response.error || !response.data) {
-      console.warn(`Could not fetch domains for account ${accountId}:`, response.error);
-      return [];
-    }
-
-    // Process list items
-    const domainsList: DomainRecord[] = [];
-    for (const d of response.data.data) {
-      domainsList.push({
+    if (response.data?.data) {
+      return response.data.data.map((d: any) => ({
         id: d.id,
-        accountId: account!.id,
-        accountName: account!.name,
         name: d.name,
         status: d.status,
         createdAt: d.created_at,
         region: d.region,
-      });
+        accountId: account.id,
+        accountName: account.name,
+      }));
     }
-    return domainsList;
-  } catch (error) {
-    console.error(`Error fetching domains for account ${accountId}:`, error);
+    return [];
+  } catch (e) {
     return [];
   }
 }
 
-export async function fetchAllDomains(): Promise<DomainRecord[]> {
-  const accounts = getAllAccounts();
-  const allDomains: DomainRecord[] = [];
-  for (const acc of accounts) {
-    const domains = await fetchDomainsForAccount(acc.id);
-    allDomains.push(...domains);
-  }
-  return allDomains;
+export async function fetchAllDomains(userId?: string): Promise<DomainRecord[]> {
+  const accounts = getAllAccounts(userId);
+  const results = await Promise.all(accounts.map((a) => fetchDomainsForAccount(a.id, userId)));
+  return results.flat();
 }
