@@ -4,13 +4,13 @@ import { getAllAccounts } from '@/lib/resend/accounts';
 import { saveCustomAccount, deleteCustomAccount } from '@/lib/db/store';
 import { ResendAccount } from '@/lib/types';
 
-async function getActiveUserId(): Promise<string | undefined> {
+async function getActiveUserSession(): Promise<{ id?: string; email?: string } | undefined> {
   const cookieStore = await cookies();
   const authCookie = cookieStore.get('resend_auth_user');
   if (authCookie) {
     try {
       const user = JSON.parse(authCookie.value);
-      return user.id;
+      return { id: user.id, email: user.email };
     } catch (e) {
       return undefined;
     }
@@ -19,8 +19,8 @@ async function getActiveUserId(): Promise<string | undefined> {
 }
 
 export async function GET() {
-  const userId = await getActiveUserId();
-  const accounts = getAllAccounts(userId).map((acc) => ({
+  const userSession = await getActiveUserSession();
+  const accounts = getAllAccounts(userSession?.id, userSession?.email).map((acc) => ({
     ...acc,
     apiKeyMasked: acc.apiKey ? `${acc.apiKey.substring(0, 6)}...${acc.apiKey.slice(-4)}` : 'Not set',
     apiKey: undefined, // Hide full key in list response for security
@@ -30,7 +30,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const userId = await getActiveUserId();
+    const userSession = await getActiveUserSession();
     const body = await request.json();
     const { name, apiKey, fromEmail, fromName } = body;
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
     const newAccount: ResendAccount = {
       id: `acc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      userId: userId || 'user_demo',
+      userId: userSession?.id || 'user_demo',
       name,
       apiKey,
       fromEmail,

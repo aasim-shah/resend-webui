@@ -11,19 +11,23 @@ function parseEnvFile(filename: string): Record<string, string> {
   return dotenv.parse(content);
 }
 
-export function getAllAccounts(userId?: string): ResendAccount[] {
+export function getAllAccounts(userId?: string, userEmail?: string): ResendAccount[] {
   const accounts: ResendAccount[] = [];
   const db = readDb();
 
-  const currentUser = userId ? (db.users || []).find((u) => u.id === userId) : undefined;
+  const currentUser = userId ? (db.users || []).find((u) => u.id === userId || u.email?.toLowerCase() === userEmail?.toLowerCase()) : undefined;
+  const emailToTest = (userEmail || currentUser?.email || '').toLowerCase();
+
   const isDefaultAdmin =
     !userId ||
     userId === 'user_demo' ||
     userId === 'user_aasim' ||
-    currentUser?.email.toLowerCase() === 'contact@aasimshah.com' ||
-    currentUser?.email.toLowerCase() === 'admin@resend-webui.com';
+    !emailToTest ||
+    emailToTest === 'contact@aasimshah.com' ||
+    emailToTest === 'admin@resend-webui.com' ||
+    emailToTest === 'syedasimshahh@gmail.com';
 
-  // 1. Primary .env profiles (ONLY included for admin/owner workspace)
+  // 1. Primary .env profiles (included for owner/admin accounts)
   if (isDefaultAdmin) {
     const defaultEnv = parseEnvFile('.env');
     const apiKey1 = process.env.RESEND_API_KEY || defaultEnv.RESEND_API_KEY;
@@ -89,7 +93,7 @@ export function getAllAccounts(userId?: string): ResendAccount[] {
   return accounts;
 }
 
-export function getAccountById(id: string, userId?: string): ResendAccount | undefined {
-  const accounts = getAllAccounts(userId);
+export function getAccountById(id: string, userId?: string, userEmail?: string): ResendAccount | undefined {
+  const accounts = getAllAccounts(userId, userEmail);
   return accounts.find((a) => a.id === id);
 }
