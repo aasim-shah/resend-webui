@@ -13,8 +13,9 @@ node_modules/
 .env.feedwink
 !.env.example
 
-# Next.js Build Outputs
+# Next.js & Vercel Build Outputs
 .next/
+.vercel/
 out/
 build/
 dist/
