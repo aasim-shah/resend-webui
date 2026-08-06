@@ -37,7 +37,7 @@
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/resend-webui.git
+git clone https://github.com/aasim-shah/resend-webui.git
 cd resend-webui
 ```
 
@@ -127,7 +127,7 @@ resend-webui/
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/your-username/resend-webui/issues).
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/aasim-shah/resend-webui/issues).
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
@@ -139,7 +139,7 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 
 ## 📄 License
 
-Distributed under the **MIT License**. See `LICENSE` for more information.
+Distributed under the **MIT License**. Created by [Syed Aasim Shah](https://github.com/aasim-shah). See `LICENSE` for more information.
 
 ---
 
