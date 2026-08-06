@@ -14,7 +14,7 @@ interface SidebarProps {
 export function Sidebar({ onOpenCompose, isCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { accounts, activeFolder, setActiveFolder } = useAccounts();
+  const { accounts, activeFolder, setActiveFolder, selectedAccountId, setSelectedAccountId } = useAccounts();
 
   const isSettings = pathname === '/settings';
 
@@ -28,6 +28,13 @@ export function Sidebar({ onOpenCompose, isCollapsed }: SidebarProps) {
 
   const handleFolderClick = (folderId: string) => {
     setActiveFolder(folderId);
+    if (pathname !== '/') {
+      router.push('/');
+    }
+  };
+
+  const handleAccountClick = (accountId: string) => {
+    setSelectedAccountId(accountId);
     if (pathname !== '/') {
       router.push('/');
     }
@@ -102,18 +109,27 @@ export function Sidebar({ onOpenCompose, isCollapsed }: SidebarProps) {
           <div className="px-3 pt-6 border-t border-slate-200/70 space-y-3">
             <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
               <span>Connected Profiles</span>
-              <Link href="/settings" className="hover:text-slate-800">
+              <Link href="/settings" className="hover:text-slate-800" title="Manage Profiles">
                 <Plus className="w-4 h-4" />
               </Link>
             </div>
 
-            <div className="space-y-2">
-              {accounts.map((acc) => (
-                <div key={acc.id} className="flex items-center space-x-2.5 text-xs text-slate-700 font-semibold truncate py-1">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0" />
-                  <span className="truncate">{acc.name}</span>
-                </div>
-              ))}
+            <div className="space-y-1.5">
+              {accounts.map((acc) => {
+                const isSelected = selectedAccountId === acc.id;
+                return (
+                  <button
+                    key={acc.id}
+                    onClick={() => handleAccountClick(acc.id)}
+                    className={`w-full flex items-center space-x-2.5 text-xs font-semibold truncate px-3 py-2 rounded-xl transition-all cursor-pointer ${
+                      isSelected ? 'bg-blue-100/90 text-blue-900 font-bold shadow-2xs' : 'text-slate-700 hover:bg-slate-200/60'
+                    }`}
+                  >
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isSelected ? 'bg-blue-600 animate-pulse' : 'bg-slate-400'}`} />
+                    <span className="truncate">{acc.name}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
