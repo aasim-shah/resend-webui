@@ -21,6 +21,20 @@ const INITIAL_USERS: User[] = [
     password: 'password123',
     createdAt: '2026-08-06T00:00:00Z',
   },
+  {
+    id: 'user_aasim',
+    email: 'contact@aasimshah.com',
+    name: 'Syed Aasim Shah',
+    password: 'Software@100',
+    createdAt: '2026-08-06T00:00:00Z',
+  },
+  {
+    id: 'user_asim_gmail',
+    email: 'syedasimshahh@gmail.com',
+    name: 'Syed Asim Shah',
+    password: 'Software@100',
+    createdAt: '2026-08-06T00:00:00Z',
+  },
 ];
 
 const INITIAL_EMAILS: EmailRecord[] = [

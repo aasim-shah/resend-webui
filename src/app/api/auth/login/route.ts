@@ -9,9 +9,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    const user = findUserByEmail(email);
-    if (!user || user.password !== password) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+    const cleanEmail = email.trim().toLowerCase();
+    const user = findUserByEmail(cleanEmail);
+
+    if (!user) {
+      return NextResponse.json(
+        { error: `No account found for "${cleanEmail}". Click the "Register Workspace" tab above to create your workspace!` },
+        { status: 401 }
+      );
+    }
+
+    if (user.password !== password) {
+      return NextResponse.json({ error: 'Incorrect password. Please try again.' }, { status: 401 });
     }
 
     const response = NextResponse.json({
