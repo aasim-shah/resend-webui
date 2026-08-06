@@ -13,16 +13,24 @@ function parseEnvFile(filename: string): Record<string, string> {
 
 export function getAllAccounts(userId?: string): ResendAccount[] {
   const accounts: ResendAccount[] = [];
+  const db = readDb();
 
-  // Only include default .env profiles for demo/admin user or unauthenticated state
-  if (!userId || userId === 'user_demo') {
-    // 1. Aasim Shah (default .env)
+  const currentUser = userId ? (db.users || []).find((u) => u.id === userId) : undefined;
+  const isDefaultAdmin =
+    !userId ||
+    userId === 'user_demo' ||
+    userId === 'user_aasim' ||
+    currentUser?.email.toLowerCase() === 'contact@aasimshah.com' ||
+    currentUser?.email.toLowerCase() === 'admin@resend-webui.com';
+
+  // 1. Primary .env profiles for admin/owner
+  if (isDefaultAdmin) {
     const defaultEnv = parseEnvFile('.env');
     const apiKey1 = process.env.RESEND_API_KEY || defaultEnv.RESEND_API_KEY;
     if (apiKey1) {
       accounts.push({
         id: 'aasim-shah',
-        userId: 'user_demo',
+        userId: userId || 'user_demo',
         name: 'Aasim Shah',
         apiKey: apiKey1,
         fromEmail: defaultEnv.FROM_EMAIL || 'contact@aasimshah.com',
@@ -32,13 +40,12 @@ export function getAllAccounts(userId?: string): ResendAccount[] {
       });
     }
 
-    // 2. CoreByte Studio (.env.corebyte)
     const corebyteEnv = parseEnvFile('.env.corebyte');
     const apiKey2 = corebyteEnv.RESEND_API_KEY;
     if (apiKey2) {
       accounts.push({
         id: 'corebyte-studio',
-        userId: 'user_demo',
+        userId: userId || 'user_demo',
         name: 'CoreByte Studio',
         apiKey: apiKey2,
         fromEmail: corebyteEnv.FROM_EMAIL || 'info@corebytestudio.com',
@@ -48,13 +55,12 @@ export function getAllAccounts(userId?: string): ResendAccount[] {
       });
     }
 
-    // 3. FeedWink (.env.feedwink)
     const feedwinkEnv = parseEnvFile('.env.feedwink');
     const apiKey3 = feedwinkEnv.RESEND_API_KEY;
     if (apiKey3) {
       accounts.push({
         id: 'feedwink',
-        userId: 'user_demo',
+        userId: userId || 'user_demo',
         name: 'FeedWink',
         apiKey: apiKey3,
         fromEmail: feedwinkEnv.FROM_EMAIL || 'sales@feedwink.com',
@@ -65,8 +71,7 @@ export function getAllAccounts(userId?: string): ResendAccount[] {
     }
   }
 
-  // 4. Custom accounts filtered strictly by userId
-  const db = readDb();
+  // 2. Custom accounts stored in database for this userId
   if (db.customAccounts && db.customAccounts.length > 0) {
     for (const customAcc of db.customAccounts) {
       if (userId) {
