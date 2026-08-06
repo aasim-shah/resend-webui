@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Environment Variables & Secret API Keys (CRITICAL SECURITY)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.corebyte
+.env.feedwink
+!.env.example
+
+# Next.js Build Outputs
+.next/
+out/
+build/
+dist/
+
+# Local Runtime Database & Storage
+data/db.json
+*.log
+
+# Legacy Scratch Files & One-Off Campaign Logs
+send.js
+*.pdf
+*.docx
+*.doc
+*.txt
+*.html
+send-log.*
+recipients.*
+businesses.*
+businesses-*.json
+campaign.*
+canada-*
+south-korea-*
+feedwink-canada-*
+preview.*
+professors*
+recipients*
+generate-*
+find-*
+build-*
+audit-*
+clean-*
+parse-*
+job-search-*
+what-to-eat/
+templates/
+CLAUDE.md
+AGENTS.md
+snake.yml
+aasim-shah-github-readme.md
+
+# IDE & OS
+.DS_Store
+*.pem
+.vscode/
+.idea/

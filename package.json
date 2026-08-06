@@ -1,0 +1,41 @@
+{
+  "name": "resend-webui",
+  "version": "1.0.0",
+  "description": "Sleek, self-hostable Gmail-style Webmail client for managing multiple Resend API accounts",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "keywords": [
+    "resend",
+    "email",
+    "webmail",
+    "nextjs",
+    "react",
+    "dashboard",
+    "transactional-email",
+    "email-client"
+  ],
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "autoprefixer": "^10.5.4",
+    "clsx": "^2.1.1",
+    "csv-parse": "^7.0.1",
+    "dotenv": "^17.4.2",
+    "lucide-react": "^1.28.0",
+    "next": "^16.3.0",
+    "postcss": "^8.5.25",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "resend": "^6.18.1",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2"
+  }
+}

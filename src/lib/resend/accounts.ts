@@ -1,0 +1,78 @@
+import fs from 'fs';
+import path from 'path';
+import dotenv from 'dotenv';
+import { ResendAccount } from '../types';
+import { readDb } from '../db/store';
+
+function parseEnvFile(filename: string): Record<string, string> {
+  const filePath = path.join(/*turbopackIgnore: true*/ process.cwd(), filename);
+  if (!fs.existsSync(filePath)) return {};
+  const content = fs.readFileSync(filePath, 'utf-8');
+  return dotenv.parse(content);
+}
+
+export function getAllAccounts(): ResendAccount[] {
+  const accounts: ResendAccount[] = [];
+
+  // 1. Aasim Shah (default .env)
+  const defaultEnv = parseEnvFile('.env');
+  const apiKey1 = process.env.RESEND_API_KEY || defaultEnv.RESEND_API_KEY;
+  if (apiKey1) {
+    accounts.push({
+      id: 'aasim-shah',
+      name: 'Aasim Shah',
+      apiKey: apiKey1,
+      fromEmail: defaultEnv.FROM_EMAIL || 'contact@aasimshah.com',
+      fromName: defaultEnv.FROM_NAME || 'Aasim Shah',
+      isDefault: true,
+      source: 'env',
+    });
+  }
+
+  // 2. CoreByte Studio (.env.corebyte)
+  const corebyteEnv = parseEnvFile('.env.corebyte');
+  const apiKey2 = corebyteEnv.RESEND_API_KEY;
+  if (apiKey2) {
+    accounts.push({
+      id: 'corebyte-studio',
+      name: 'CoreByte Studio',
+      apiKey: apiKey2,
+      fromEmail: corebyteEnv.FROM_EMAIL || 'info@corebytestudio.com',
+      fromName: corebyteEnv.FROM_NAME || 'CoreByte Studio',
+      isDefault: false,
+      source: 'env.corebyte',
+    });
+  }
+
+  // 3. FeedWink (.env.feedwink)
+  const feedwinkEnv = parseEnvFile('.env.feedwink');
+  const apiKey3 = feedwinkEnv.RESEND_API_KEY;
+  if (apiKey3) {
+    accounts.push({
+      id: 'feedwink',
+      name: 'FeedWink',
+      apiKey: apiKey3,
+      fromEmail: feedwinkEnv.FROM_EMAIL || 'sales@feedwink.com',
+      fromName: feedwinkEnv.FROM_NAME || 'FeedWink',
+      isDefault: false,
+      source: 'env.feedwink',
+    });
+  }
+
+  // 4. Custom accounts stored in database
+  const db = readDb();
+  if (db.customAccounts && db.customAccounts.length > 0) {
+    for (const customAcc of db.customAccounts) {
+      if (!accounts.some((a) => a.id === customAcc.id)) {
+        accounts.push(customAcc);
+      }
+    }
+  }
+
+  return accounts;
+}
+
+export function getAccountById(id: string): ResendAccount | undefined {
+  const accounts = getAllAccounts();
+  return accounts.find((a) => a.id === id);
+}
