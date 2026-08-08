@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Mail, BellRing, Inbox } from 'lucide-react';
+import { X, Mail, MailOpen, BellRing, Inbox } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { useNotifications } from '@/context/NotificationContext';
 import { useDelayedUnmount } from '@/hooks/useDelayedUnmount';
@@ -40,6 +40,15 @@ export function NotificationsModal({ isOpen, onClose }: NotificationsModalProps)
     }
   };
 
+  const markAllRead = async () => {
+    try {
+      await apiFetch('/api/emails/read-all', { method: 'PATCH' });
+      refresh();
+    } catch {
+      // Best-effort; the badge will still reflect the true read state next poll.
+    }
+  };
+
   if (!shouldRender) return null;
 
   return (
@@ -60,12 +69,23 @@ export function NotificationsModal({ isOpen, onClose }: NotificationsModalProps)
             </div>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllRead}
+              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
+              title="Mark All as Read"
+            >
+              <MailOpen className="w-5 h-5" />
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {permission !== 'unsupported' && permission !== 'granted' && (

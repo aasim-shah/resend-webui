@@ -174,6 +174,18 @@ function WebmailHome() {
     [refreshNotifications]
   );
 
+  const markAllRead = React.useCallback(async () => {
+    const params = new URLSearchParams();
+    if (selectedAccountId && selectedAccountId !== 'all') params.set('profileId', selectedAccountId);
+    setEmails((prev) => prev.map((e) => (e.direction === 'inbound' ? { ...e, isRead: true } : e)));
+    try {
+      await apiFetch(`/api/emails/read-all?${params.toString()}`, { method: 'PATCH' });
+      refreshNotifications();
+    } catch (err) {
+      console.error('Failed to mark all emails read:', err);
+    }
+  }, [selectedAccountId, refreshNotifications]);
+
   const openThread = (thread: EmailThread) => {
     setSelectedThreadKey(thread.key);
     thread.messages.filter((m) => m.direction === 'inbound' && m.isRead === false).forEach(markRead);
@@ -471,6 +483,14 @@ function WebmailHome() {
                 title="Refresh Folder"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+
+              <button
+                onClick={markAllRead}
+                className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                title="Mark All as Read"
+              >
+                <MailOpen className="w-4 h-4" />
               </button>
 
               <button className="hidden sm:inline-flex p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
