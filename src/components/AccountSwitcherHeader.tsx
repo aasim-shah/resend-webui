@@ -3,10 +3,12 @@
 import React from 'react';
 import { useAccounts } from '@/context/AccountContext';
 import { ChevronDown, Check, Mail, ShieldCheck, Plus, Layers } from 'lucide-react';
+import { useDelayedUnmount } from '@/hooks/useDelayedUnmount';
 
 export function AccountSwitcherHeader() {
   const { accounts, selectedAccountId, setSelectedAccountId } = useAccounts();
   const [isOpen, setIsOpen] = React.useState(false);
+  const shouldRender = useDelayedUnmount(isOpen, 140);
 
   const activeAccount =
     selectedAccountId === 'all'
@@ -53,10 +55,14 @@ export function AccountSwitcherHeader() {
         <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors ml-1 shrink-0" />
       </button>
 
-      {isOpen && (
+      {shouldRender && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-slate-200/90 rounded-2xl shadow-xl z-40 py-1.5 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+          <div
+            className={`absolute right-0 top-full mt-2 w-80 bg-white border border-slate-200/90 rounded-2xl shadow-xl z-40 py-1.5 overflow-hidden ${
+              isOpen ? 'dropdown-pop-in' : 'dropdown-pop-out'
+            }`}
+          >
             <div className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
               <span>Switch Resend Context</span>
               <span className="text-slate-500 font-mono text-[9px]">{accounts.length} Active</span>

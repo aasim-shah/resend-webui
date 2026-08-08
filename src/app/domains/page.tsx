@@ -4,6 +4,7 @@ import React from 'react';
 import { Globe, RefreshCw } from 'lucide-react';
 import { useAccounts } from '@/context/AccountContext';
 import { DomainRecord } from '@/lib/types';
+import { apiFetch, mapDomain } from '@/lib/api/client';
 
 export default function DomainsPage() {
   const { selectedAccountId } = useAccounts();
@@ -13,14 +14,14 @@ export default function DomainsPage() {
   const fetchDomains = React.useCallback(async () => {
     setLoading(true);
     try {
-      const url = new URL('/api/domains', window.location.origin);
+      const params = new URLSearchParams();
       if (selectedAccountId && selectedAccountId !== 'all') {
-        url.searchParams.set('accountId', selectedAccountId);
+        params.set('profileId', selectedAccountId);
       }
-      const res = await fetch(url.toString());
+      const res = await apiFetch(`/api/domains?${params.toString()}`);
       const data = await res.json();
       if (data.domains) {
-        setDomains(data.domains);
+        setDomains(data.domains.map(mapDomain));
       }
     } catch (err) {
       console.error('Failed to fetch domains:', err);
@@ -34,7 +35,7 @@ export default function DomainsPage() {
   }, [fetchDomains]);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6 p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-800 pb-4">
         <div>
           <h1 className="text-xl font-bold text-slate-100 tracking-tight">Domain Health & Verification</h1>

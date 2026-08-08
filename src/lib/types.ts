@@ -11,10 +11,12 @@ export interface ResendAccount {
   userId?: string;
   name: string;
   fromName?: string;
-  apiKey: string;
+  apiKey?: string;
   apiKeyMasked?: string;
   fromEmail: string;
   domain?: string;
+  webhookSecretMasked?: string;
+  hasWebhookSecret?: boolean;
   isDefault?: boolean;
   source: 'env' | 'env.corebyte' | 'env.feedwink' | 'custom';
   createdAt?: string;
@@ -41,6 +43,7 @@ export interface EmailRecord {
   clickedAt?: string;
   bouncedAt?: string;
   isDryRun?: boolean;
+  isRead?: boolean;
   direction?: 'inbound' | 'outbound';
   tags?: Array<{ name: string; value: string }>;
   error?: string;

@@ -3,16 +3,29 @@
 import React from 'react';
 import { EmailRecord } from '@/lib/types';
 import { X, CheckCircle2, Clock, AlertTriangle, Mail } from 'lucide-react';
+import { useDelayedUnmount } from '@/hooks/useDelayedUnmount';
 
 interface EmailInspectorModalProps {
   email: EmailRecord | null;
   onClose: () => void;
 }
 
-export function EmailInspectorModal({ email, onClose }: EmailInspectorModalProps) {
+export function EmailInspectorModal({ email: emailProp, onClose }: EmailInspectorModalProps) {
   const [activeTab, setActiveTab] = React.useState<'preview' | 'html' | 'raw'>('preview');
+  // Keep rendering the last-open email while the exit animation plays, since
+  // emailProp itself goes null the instant the parent closes the inspector.
+  const [displayEmail, setDisplayEmail] = React.useState(emailProp);
 
-  if (!email) return null;
+  React.useEffect(() => {
+    if (emailProp) setDisplayEmail(emailProp);
+  }, [emailProp]);
+
+  const isOpen = Boolean(emailProp);
+  const shouldRender = useDelayedUnmount(isOpen, 160);
+
+  if (!shouldRender || !displayEmail) return null;
+
+  const email = displayEmail;
 
   const toList = Array.isArray(email.to) ? email.to.join(', ') : email.to;
 
@@ -46,25 +59,33 @@ export function EmailInspectorModal({ email, onClose }: EmailInspectorModalProps
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-      <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs ${
+        isOpen ? 'modal-backdrop-in' : 'modal-backdrop-out'
+      }`}
+    >
+      <div
+        className={`bg-white border border-slate-200 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden ${
+          isOpen ? 'modal-panel-in' : 'modal-panel-out'
+        }`}
+      >
         {/* Header */}
-        <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
+        <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50/80">
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">
               <Mail className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="font-bold text-slate-900 text-sm truncate max-w-lg">{email.subject}</h2>
-              <div className="flex items-center space-x-2 text-[11px] text-slate-500 mt-0.5">
-                <span>Profile: <strong className="text-slate-800 font-semibold">{email.accountName}</strong></span>
-                <span>•</span>
-                <span>ID: {email.resendId || email.id}</span>
+            <div className="min-w-0">
+              <h2 className="font-bold text-slate-900 text-sm truncate max-w-[60vw] sm:max-w-lg">{email.subject}</h2>
+              <div className="flex items-center flex-wrap gap-x-2 text-[11px] text-slate-500 mt-0.5">
+                <span className="truncate">Profile: <strong className="text-slate-800 font-semibold">{email.accountName}</strong></span>
+                <span className="hidden sm:inline">•</span>
+                <span className="truncate">ID: {email.resendId || email.id}</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {email.isDryRun && (
               <span className="bg-amber-50 text-amber-700 text-xs px-2 py-0.5 rounded-md border border-amber-200 font-semibold">
                 Dry Run
@@ -81,7 +102,7 @@ export function EmailInspectorModal({ email, onClose }: EmailInspectorModalProps
         </div>
 
         {/* Metadata Details Grid */}
-        <div className="p-4 bg-slate-50/50 border-b border-slate-200 grid grid-cols-2 gap-4 text-xs">
+        <div className="p-4 bg-slate-50/50 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs">
           <div>
             <div className="text-slate-500 font-medium">From Address</div>
             <div className="text-slate-900 font-mono font-semibold mt-0.5">{email.from}</div>
@@ -135,9 +156,9 @@ export function EmailInspectorModal({ email, onClose }: EmailInspectorModalProps
         </div>
 
         {/* Content Pane */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 min-h-[300px]">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-slate-50/50 min-h-[300px]">
           {activeTab === 'preview' && (
-            <div className="bg-white border border-slate-200/80 rounded-xl p-6 text-slate-800 shadow-2xs min-h-[250px]">
+            <div className="bg-white border border-slate-200/80 rounded-xl p-4 sm:p-6 text-slate-800 shadow-2xs min-h-[250px] overflow-x-auto">
               {email.html ? (
                 <div dangerouslySetInnerHTML={{ __html: email.html }} />
               ) : (

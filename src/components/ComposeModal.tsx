@@ -4,41 +4,66 @@ import React from 'react';
 import Link from 'next/link';
 import { useAccounts } from '@/context/AccountContext';
 import { X, Send, Eye, Code, AlertCircle, CheckCircle2, Paperclip, Bold, Italic, Link as LinkIcon, Sparkles, ChevronDown, PlusCircle } from 'lucide-react';
+import { apiFetch } from '@/lib/api/client';
+import { useDelayedUnmount } from '@/hooks/useDelayedUnmount';
+
+export interface ComposeInitialData {
+  mode: 'reply' | 'forward';
+  /** Profile the source email belongs to — replies/forwards should go out from the same account. */
+  accountId?: string;
+  to?: string;
+  subject: string;
+  /** Raw HTML quote block (original message, forwarded header, etc). */
+  quotedHtml: string;
+}
 
 interface ComposeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  initialData?: ComposeInitialData;
 }
 
-export function ComposeModal({ isOpen, onClose, onSuccess }: ComposeModalProps) {
+const DEFAULT_BODY =
+  'Hi there,\n\nWriting to follow up regarding our recent project updates. Let me know if you have any questions.\n\nBest regards,\nTeam';
+
+export function ComposeModal({ isOpen, onClose, onSuccess, initialData }: ComposeModalProps) {
   const { accounts, selectedAccountId, triggerRefresh } = useAccounts();
-  const [accountId, setAccountId] = React.useState<string>('');
-  const [to, setTo] = React.useState<string>('');
+  const [accountId, setAccountId] = React.useState<string>(initialData?.accountId || '');
+  const [to, setTo] = React.useState<string>(initialData?.to || '');
   const [cc, setCc] = React.useState<string>('');
   const [bcc, setBcc] = React.useState<string>('');
-  const [subject, setSubject] = React.useState<string>('');
+  const [subject, setSubject] = React.useState<string>(initialData?.subject || '');
   const [bodyText, setBodyText] = React.useState<string>(
-    'Hi there,\n\nWriting to follow up regarding our recent project updates. Let me know if you have any questions.\n\nBest regards,\nTeam'
+    initialData ? `\n\n${initialData.quotedHtml}` : DEFAULT_BODY
   );
-  const [isHtmlMode, setIsHtmlMode] = React.useState<boolean>(false);
+  const [isHtmlMode, setIsHtmlMode] = React.useState<boolean>(Boolean(initialData));
   const [isDryRun, setIsDryRun] = React.useState<boolean>(false);
   const [activeTab, setActiveTab] = React.useState<'write' | 'preview'>('write');
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
   const [feedback, setFeedback] = React.useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showCcBcc, setShowCcBcc] = React.useState<boolean>(false);
+  const idempotencyKeyRef = React.useRef<string>(crypto.randomUUID());
 
   React.useEffect(() => {
-    if (selectedAccountId && selectedAccountId !== 'all' && accounts.some((a) => a.id === selectedAccountId)) {
+    if (initialData?.accountId && accounts.some((a) => a.id === initialData.accountId)) {
+      setAccountId(initialData.accountId);
+    } else if (selectedAccountId && selectedAccountId !== 'all' && accounts.some((a) => a.id === selectedAccountId)) {
       setAccountId(selectedAccountId);
     } else if (accounts.length > 0) {
       setAccountId(accounts[0].id);
     } else {
       setAccountId('');
     }
-  }, [selectedAccountId, accounts]);
+  }, [selectedAccountId, accounts, initialData]);
 
-  if (!isOpen) return null;
+  React.useEffect(() => {
+    if (isOpen) idempotencyKeyRef.current = crypto.randomUUID();
+  }, [isOpen]);
+
+  const shouldRender = useDelayedUnmount(isOpen, 160);
+
+  if (!shouldRender) return null;
 
   const activeAccount = accounts.find((a) => a.id === accountId) || accounts[0];
 
@@ -73,11 +98,10 @@ export function ComposeModal({ isOpen, onClose, onSuccess }: ComposeModalProps) 
 
       const finalHtml = isHtmlMode ? bodyText : formatAsHtml(bodyText);
 
-      const res = await fetch('/api/emails/send', {
+      const res = await apiFetch('/api/emails/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          accountId,
+          profileId: accountId,
           to: recipientList.length === 1 ? recipientList[0] : recipientList,
           cc: cc ? cc.split(',').map((s) => s.trim()) : undefined,
           bcc: bcc ? bcc.split(',').map((s) => s.trim()) : undefined,
@@ -85,6 +109,7 @@ export function ComposeModal({ isOpen, onClose, onSuccess }: ComposeModalProps) 
           html: finalHtml,
           text: bodyText,
           isDryRun,
+          idempotencyKey: idempotencyKeyRef.current,
         }),
       });
 
@@ -92,6 +117,8 @@ export function ComposeModal({ isOpen, onClose, onSuccess }: ComposeModalProps) 
       if (!res.ok || data.error) {
         throw new Error(data.error || 'Failed to dispatch email');
       }
+
+      idempotencyKeyRef.current = crypto.randomUUID();
 
       setFeedback({ type: 'success', message: data.message || 'Email sent successfully!' });
       setTimeout(() => {
@@ -107,13 +134,23 @@ export function ComposeModal({ isOpen, onClose, onSuccess }: ComposeModalProps) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/30 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col max-h-[85vh]">
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/30 backdrop-blur-xs ${
+        isOpen ? 'modal-backdrop-in' : 'modal-backdrop-out'
+      }`}
+    >
+      <div
+        className={`bg-white rounded-3xl w-full max-w-2xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col max-h-[85vh] ${
+          isOpen ? 'modal-panel-in' : 'modal-panel-out'
+        }`}
+      >
         {/* Sleek Header Bar */}
         <div className="px-6 py-3.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
-            <h2 className="font-bold text-slate-900 text-xs tracking-tight">New Message</h2>
+            <h2 className="font-bold text-slate-900 text-xs tracking-tight">
+              {initialData?.mode === 'reply' ? 'Reply' : initialData?.mode === 'forward' ? 'Forward' : 'New Message'}
+            </h2>
           </div>
 
           {/* Account Selector & Close Button */}
@@ -206,7 +243,7 @@ export function ComposeModal({ isOpen, onClose, onSuccess }: ComposeModalProps) 
             </div>
 
             {showCcBcc && (
-              <>
+              <div className="reveal-fade-in space-y-1">
                 <div className="flex items-center pt-1 border-t border-slate-50">
                   <span className="text-xs font-bold text-slate-400 w-12 shrink-0">Cc</span>
                   <input
@@ -227,7 +264,7 @@ export function ComposeModal({ isOpen, onClose, onSuccess }: ComposeModalProps) 
                     className="w-full text-xs font-medium text-slate-900 bg-transparent border-none outline-none py-1 focus:ring-0 placeholder-slate-400"
                   />
                 </div>
-              </>
+              </div>
             )}
           </div>
 
@@ -311,8 +348,8 @@ export function ComposeModal({ isOpen, onClose, onSuccess }: ComposeModalProps) 
           </div>
 
           {/* Sleek Footer Actions */}
-          <div className="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between shrink-0">
-            <div className="text-[11px] text-slate-400 font-mono">
+          <div className="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
+            <div className="text-[11px] text-slate-400 font-mono truncate">
               {activeAccount ? (
                 <>Sending via: <span className="font-bold text-slate-700">{activeAccount.fromEmail}</span></>
               ) : (
@@ -320,7 +357,7 @@ export function ComposeModal({ isOpen, onClose, onSuccess }: ComposeModalProps) 
               )}
             </div>
 
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-end space-x-3">
               <button
                 type="button"
                 onClick={onClose}

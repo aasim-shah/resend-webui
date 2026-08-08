@@ -5,9 +5,10 @@ import { Search, Mail, Download, RefreshCw, Eye, CheckCircle2, AlertTriangle, Cl
 import { useAccounts } from '@/context/AccountContext';
 import { EmailRecord } from '@/lib/types';
 import { EmailInspectorModal } from '@/components/EmailInspectorModal';
+import { apiFetch, mapEmail } from '@/lib/api/client';
 
 export default function EmailsPage() {
-  const { accounts, selectedAccountId } = useAccounts();
+  const { accounts, selectedAccountId, refreshTrigger } = useAccounts();
   const [emails, setEmails] = React.useState<EmailRecord[]>([]);
   const [filterAccount, setFilterAccount] = React.useState<string>(selectedAccountId || 'all');
   const [filterStatus, setFilterStatus] = React.useState<string>('all');
@@ -24,15 +25,15 @@ export default function EmailsPage() {
   const fetchEmails = React.useCallback(async () => {
     setLoading(true);
     try {
-      const url = new URL('/api/emails', window.location.origin);
-      url.searchParams.set('accountId', filterAccount);
-      if (filterStatus !== 'all') url.searchParams.set('status', filterStatus);
-      if (searchQuery) url.searchParams.set('query', searchQuery);
+      const params = new URLSearchParams();
+      if (filterAccount && filterAccount !== 'all') params.set('profileId', filterAccount);
+      if (filterStatus !== 'all') params.set('status', filterStatus);
+      if (searchQuery) params.set('query', searchQuery);
 
-      const res = await fetch(url.toString());
+      const res = await apiFetch(`/api/emails?${params.toString()}`);
       const data = await res.json();
       if (data.emails) {
-        setEmails(data.emails);
+        setEmails(data.emails.map(mapEmail));
       }
     } catch (err) {
       console.error('Failed to fetch emails:', err);
@@ -43,7 +44,7 @@ export default function EmailsPage() {
 
   React.useEffect(() => {
     fetchEmails();
-  }, [fetchEmails]);
+  }, [fetchEmails, refreshTrigger]);
 
   const handleExportCsv = () => {
     if (emails.length === 0) return;
@@ -83,7 +84,7 @@ export default function EmailsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-8 space-y-6 bg-white min-h-screen">
+    <div className="max-w-7xl mx-auto p-4 sm:p-8 space-y-6 bg-white min-h-screen">
       {/* Header Title */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>

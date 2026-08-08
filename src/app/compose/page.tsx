@@ -4,6 +4,7 @@ import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Send, Eye, Code, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAccounts } from '@/context/AccountContext';
+import { apiFetch } from '@/lib/api/client';
 
 function ComposeForm() {
   const router = useRouter();
@@ -11,7 +12,7 @@ function ComposeForm() {
   const accountFromQuery = searchParams.get('account');
   const { accounts, selectedAccountId } = useAccounts();
 
-  const [accountId, setAccountId] = React.useState<string>('aasim-shah');
+  const [accountId, setAccountId] = React.useState<string>('');
   const [to, setTo] = React.useState<string>('');
   const [cc, setCc] = React.useState<string>('');
   const [bcc, setBcc] = React.useState<string>('');
@@ -23,6 +24,7 @@ function ComposeForm() {
   const [activeTab, setActiveTab] = React.useState<'editor' | 'preview'>('editor');
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
   const [feedback, setFeedback] = React.useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const idempotencyKeyRef = React.useRef<string>(crypto.randomUUID());
 
   React.useEffect(() => {
     if (accountFromQuery) {
@@ -47,17 +49,17 @@ function ComposeForm() {
         .map((s) => s.trim())
         .filter(Boolean);
 
-      const res = await fetch('/api/emails/send', {
+      const res = await apiFetch('/api/emails/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          accountId,
+          profileId: accountId,
           to: recipientList.length === 1 ? recipientList[0] : recipientList,
           cc: cc ? cc.split(',').map((s) => s.trim()) : undefined,
           bcc: bcc ? bcc.split(',').map((s) => s.trim()) : undefined,
           subject,
           html: htmlContent,
           isDryRun,
+          idempotencyKey: idempotencyKeyRef.current,
         }),
       });
 
@@ -65,6 +67,8 @@ function ComposeForm() {
       if (!res.ok || data.error) {
         throw new Error(data.error || 'Failed to send email');
       }
+
+      idempotencyKeyRef.current = crypto.randomUUID();
 
       setFeedback({
         type: 'success',
@@ -87,8 +91,8 @@ function ComposeForm() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+    <div className="max-w-5xl mx-auto space-y-6 px-3 sm:px-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800 pb-4">
         <div>
           <h1 className="text-xl font-bold text-slate-100 tracking-tight">Compose & Dispatch Email</h1>
           <p className="text-xs text-slate-400 mt-1">
@@ -101,7 +105,7 @@ function ComposeForm() {
           <select
             value={accountId}
             onChange={(e) => setAccountId(e.target.value)}
-            className="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 font-medium"
+            className="min-w-0 flex-1 bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 font-medium"
           >
             {accounts.map((acc) => (
               <option key={acc.id} value={acc.id}>
@@ -126,14 +130,14 @@ function ComposeForm() {
       )}
 
       <form onSubmit={handleSend} className="space-y-5">
-        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between text-xs">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-bold text-blue-400">
+        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs">
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-bold text-blue-400 shrink-0">
               {activeAccount?.name.charAt(0)}
             </div>
-            <div>
-              <div className="font-semibold text-slate-200">{activeAccount?.name} Profile</div>
-              <div className="text-[11px] text-slate-400 font-mono">
+            <div className="min-w-0">
+              <div className="font-semibold text-slate-200 truncate">{activeAccount?.name} Profile</div>
+              <div className="text-[11px] text-slate-400 font-mono truncate">
                 From Address: <strong className="text-slate-300">{activeAccount?.fromEmail}</strong>
               </div>
             </div>
@@ -248,14 +252,14 @@ function ComposeForm() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-2">
-          <div className="text-xs text-slate-400">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+          <div className="text-xs text-slate-400 truncate">
             Sending via Resend SDK account: <strong className="text-slate-200">{activeAccount?.name}</strong>
           </div>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-500/25 flex items-center space-x-2 transition-all"
+            className="w-full sm:w-auto justify-center px-6 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-500/25 flex items-center space-x-2 transition-all"
           >
             <Send className="w-4 h-4" />
             <span>{isSubmitting ? 'Dispatching...' : isDryRun ? 'Simulate Dry Send' : 'Send Email Now'}</span>

@@ -29,3 +29,4 @@ data/db.json
 *.pem
 .vscode/
 .idea/
+tsconfig.tsbuildinfo
